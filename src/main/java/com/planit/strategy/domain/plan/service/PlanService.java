@@ -26,6 +26,8 @@ public class PlanService {
     private final PlanGenerationAgent planGenerationAgent;
     private final ObjectMapper objectMapper;
     private final CategoryRepository categoryRepository;
+    private final com.planit.strategy.grpc.client.ScheduleGrpcClient scheduleGrpcClient;
+    private final com.planit.strategy.grpc.mapper.PlanProtoMapper planProtoMapper;
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     /**
@@ -58,6 +60,39 @@ public class PlanService {
             return response;
         } catch (AgentExecutionException e) {
             log.error("실행 계획 생성 실패", e);
+            throw new CustomException(ErrorCode.C5001);
+        }
+    }
+
+    /**
+     * 계획 저장 (AI 호출 없음, gRPC만 호출)
+     * 프론트에서 /generate로 받은 PlanResponse를 Schedule Service에 저장
+     * 
+     * @param userId 사용자 ID
+     * @param planResponse /generate API에서 받은 계획 데이터
+     * @return 생성된 Goal ID
+     */
+    public Long savePlan(String userId, PlanResponse planResponse) {
+        try {
+            log.info("계획 저장 요청 - UserId: {}, Goal: {}", userId, planResponse.getGoal().getTitle());
+            
+            // 1. PlanResponse를 AiPlanResponse로 변환
+            AiPlanResponse aiPlanResponse = AiPlanResponse.builder()
+                    .categoryName(planResponse.getCategoryName())
+                    .goal(planResponse.getGoal())
+                    .build();
+            
+            // 2. gRPC proto 객체로 변환
+            com.planit.grpc.schedule.CreatePlanRequest grpcRequest = 
+                    planProtoMapper.toCreatePlanRequest(userId, aiPlanResponse);
+            
+            // 3. Schedule Service에 gRPC 호출
+            Long goalId = scheduleGrpcClient.createPlan(grpcRequest);
+            log.info("Schedule Service에 계획 저장 완료 - GoalId: {}", goalId);
+            
+            return goalId;
+        } catch (Exception e) {
+            log.error("계획 저장 실패", e);
             throw new CustomException(ErrorCode.C5001);
         }
     }
@@ -186,9 +221,9 @@ public class PlanService {
     }
 
     /**
-     * LocalDate를 ISO-8601 형식의 LocalDateTime으로 변환
+     * LocalDate를 그대로 반환 (날짜만 필요)
      */
-    private LocalDateTime convertToDateTime(LocalDate date) {
-        return date.atStartOfDay(ZoneId.of("UTC")).toLocalDateTime();
+    private LocalDate convertToDateTime(LocalDate date) {
+        return date;
     }
 }
