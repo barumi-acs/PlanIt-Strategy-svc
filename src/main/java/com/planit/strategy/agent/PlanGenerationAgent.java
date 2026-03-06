@@ -213,10 +213,10 @@ public class PlanGenerationAgent implements StrategyAgent<PlanRequest, List<Plan
     }
 
     /**
-     * LocalDate를 ISO-8601 형식의 LocalDateTime으로 변환
+     * LocalDate를 그대로 반환 (날짜만 필요)
      */
-    private LocalDateTime convertToDateTime(LocalDate date) {
-        return date.atStartOfDay(ZoneId.of("UTC")).toLocalDateTime();
+    private LocalDate convertToDateTime(LocalDate date) {
+        return date;
     }
 
     /**

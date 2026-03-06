@@ -10,7 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Getter
 @Builder
@@ -19,6 +19,6 @@ import java.time.LocalDateTime;
 public class TaskDto {
     private String content;
     
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
-    private LocalDateTime targetDate;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate targetDate;
 }
