@@ -1,6 +1,7 @@
 package com.planit.strategy.domain.trend.service;
 
 import com.planit.strategy.domain.trend.dto.AllTrendsResponse;
+import com.planit.strategy.domain.trend.dto.CategoryTrendsResponse;
 import com.planit.strategy.domain.trend.dto.TrendItemResponse;
 import com.planit.strategy.domain.trend.entity.Category;
 import com.planit.strategy.domain.trend.entity.Trend;
@@ -25,7 +26,7 @@ public class TrendQueryService {
     private final CategoryRepository categoryRepository;
     private final TrendRepository trendRepository;
     
-    public List<TrendItemResponse> getTrendsByCategory(Long categoryId) {
+    public CategoryTrendsResponse getTrendsByCategory(Long categoryId) {
         log.info("카테고리별 최신 트렌드 조회 - Category ID: {}", categoryId);
         
         Category category = categoryRepository.findById(categoryId)
@@ -36,7 +37,11 @@ public class TrendQueryService {
         
         if (latestBatch.isEmpty()) {
             log.info("트렌드 없음 - Category: {}", category.getName());
-            return List.of();
+            return CategoryTrendsResponse.builder()
+                    .categoryId(category.getId())
+                    .categoryName(category.getName())
+                    .trends(List.of())
+                    .build();
         }
         
         // 최신 배치의 트렌드만 조회 (점수 내림차순)
@@ -46,9 +51,15 @@ public class TrendQueryService {
         log.info("최신 트렌드 조회 완료 - Category: {}, Batch ID: {}, Count: {}", 
                 category.getName(), latestBatch.get().getId(), trends.size());
         
-        return trends.stream()
+        List<TrendItemResponse> trendItems = trends.stream()
                 .map(TrendItemResponse::from)
                 .collect(Collectors.toList());
+        
+        return CategoryTrendsResponse.builder()
+                .categoryId(category.getId())
+                .categoryName(category.getName())
+                .trends(trendItems)
+                .build();
     }
     
     /**

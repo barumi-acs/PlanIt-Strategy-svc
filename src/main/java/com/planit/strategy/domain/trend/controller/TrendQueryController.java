@@ -2,6 +2,7 @@ package com.planit.strategy.domain.trend.controller;
 
 import com.planit.strategy.common.ApiResponse;
 import com.planit.strategy.domain.trend.dto.AllTrendsResponse;
+import com.planit.strategy.domain.trend.dto.CategoryTrendsResponse;
 import com.planit.strategy.domain.trend.dto.TrendItemResponse;
 import com.planit.strategy.domain.trend.service.TrendQueryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,12 +37,12 @@ public class TrendQueryController {
     
     @Operation(summary = "카테고리별 트렌드 조회", description = "특정 카테고리의 최신 트렌드 목록을 score 내림차순으로 조회합니다")
     @GetMapping("/categories/{categoryId}/trends")
-    public ApiResponse<List<TrendItemResponse>> getTrendsByCategory(
+    public ApiResponse<CategoryTrendsResponse> getTrendsByCategory(
             @Parameter(description = "카테고리 ID", required = true) @PathVariable Long categoryId) {
         log.info("[Trend Query API] 카테고리별 트렌드 조회 - Category ID: {}", categoryId);
         
-        List<TrendItemResponse> trends = trendQueryService.getTrendsByCategory(categoryId);
+        CategoryTrendsResponse response = trendQueryService.getTrendsByCategory(categoryId);
         
-        return ApiResponse.success(trends);
+        return ApiResponse.success(response);
     }
 }
