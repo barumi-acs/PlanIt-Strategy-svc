@@ -3,7 +3,7 @@
 #민감한 정보는 환경변수로 주입하세요.
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:8083}
 
 spring:
   application:
@@ -58,3 +58,10 @@ logging:
     software.amazon.awssdk: WARN
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# <-> Schedule Service gRPC 통신
+grpc:
+  client:
+    schedule-service:
+      address: static://localhost:9091
+      negotiation-type: plaintext
