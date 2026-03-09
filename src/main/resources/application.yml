@@ -31,12 +31,13 @@ spring:
 
 # AWS 설정
 aws:
-  region: ${AWS_REGION:us-east-1}
+  region: ${AWS_REGION:ap-northeast-2}
   credentials:
-    access-key: ${AWS_ACCESS_KEY:}
-    secret-key: ${AWS_SECRET_KEY:}
+    access-key: ${AWS_ACCESS_KEY}
+    secret-key: ${AWS_SECRET_KEY}
   bedrock:
     model-id: ${BEDROCK_MODEL_ID:us.anthropic.claude-sonnet-4-20250514-v1:0}
+
 
 bedrock:
   temperature: ${BEDROCK_TEMPERATURE:0.7}
