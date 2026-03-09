@@ -10,10 +10,10 @@ spring:
     name: planit-strategy-service
   
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mariadb://localhost:3307/planit}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mariadb://localhost:3306/planit_strategy_db}
     driver-class-name: org.mariadb.jdbc.Driver
     username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:your-database-password}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
   
   jpa:
     database-platform: org.hibernate.dialect.MariaDBDialect
@@ -29,8 +29,12 @@ spring:
       mode: always
       continue-on-error: true
 
-# AWS Bedrock 설정
+# AWS 설정
 aws:
+  region: ${AWS_REGION:us-east-1}
+  credentials:
+    access-key: ${AWS_ACCESS_KEY:}
+    secret-key: ${AWS_SECRET_KEY:}
   bedrock:
     model-id: ${BEDROCK_MODEL_ID:us.anthropic.claude-sonnet-4-20250514-v1:0}
 
@@ -61,6 +65,8 @@ logging:
 
 # <-> Schedule Service gRPC 통신
 grpc:
+  server:
+    port: ${GRPC_SERVER_PORT:9093}
   client:
     schedule-service:
       address: static://localhost:9091

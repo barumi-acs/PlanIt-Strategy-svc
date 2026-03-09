@@ -33,19 +33,29 @@ public class BedrockClient implements LlmClient {
 
     public BedrockClient(
             @Value("${aws.bedrock.model-id:anthropic.claude-3-sonnet-20240229-v1:0}") String modelId,
-            @Value("${bedrock.temperature:0.7}") double temperature) {
+            @Value("${bedrock.temperature:0.7}") double temperature,
+            @Value("${aws.region:us-east-1}") String region,
+            @Value("${aws.credentials.access-key:}") String accessKey,
+            @Value("${aws.credentials.secret-key:}") String secretKey) {
         this.modelId = modelId;
         this.temperature = temperature;
         this.objectMapper = new ObjectMapper();
         
-        String region = System.getenv("AWS_DEFAULT_REGION");
-        if (region == null || region.isBlank()) {
-            region = "us-east-1";
+        software.amazon.awssdk.auth.credentials.AwsCredentialsProvider credentialsProvider;
+        
+        if (accessKey != null && !accessKey.isBlank() && !accessKey.equals("your-access-key-here")) {
+            log.info("🔑 Bedrock용 수동 설정된 AWS Credentials 사용");
+            credentialsProvider = software.amazon.awssdk.auth.credentials.StaticCredentialsProvider.create(
+                software.amazon.awssdk.auth.credentials.AwsBasicCredentials.create(accessKey, secretKey)
+            );
+        } else {
+            log.info("💻 Bedrock용 기본 AWS 자격 증명 시스템(DefaultCredentialsProvider) 사용");
+            credentialsProvider = DefaultCredentialsProvider.create();
         }
         
         this.client = BedrockRuntimeClient.builder()
                 .region(Region.of(region))
-                .credentialsProvider(DefaultCredentialsProvider.create())
+                .credentialsProvider(credentialsProvider)
                 .build();
     }
 
