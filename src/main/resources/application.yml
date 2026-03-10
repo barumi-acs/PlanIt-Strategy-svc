@@ -20,7 +20,7 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     show-sql: true
     defer-datasource-initialization: true
     properties:
@@ -40,7 +40,7 @@ aws:
     access-key: ${AWS_ACCESS_KEY:}
     secret-key: ${AWS_SECRET_KEY:}
   bedrock:
-    model-id: ${BEDROCK_MODEL_ID:anthropic.claude-sonnet-4-20250514-v1:0}
+    model-id: ${BEDROCK_MODEL_ID:anthropic.claude-3-5-sonnet-20240620-v1:0}
 
 
 bedrock:
