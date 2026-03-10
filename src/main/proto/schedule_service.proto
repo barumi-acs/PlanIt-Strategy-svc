@@ -52,6 +52,10 @@ message Task {
 
 message CreatePlanResponse {
 
-  int64 goal_id = 1;
+  bool success = 1;
+
+  string message = 2;
+
+  int64 goal_id = 3;
 
 }

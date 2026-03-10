@@ -74,5 +74,5 @@ grpc:
     port: ${GRPC_SERVER_PORT:9093}
   client:
     schedule-service:
-      address: static://localhost:9091
+      address: ${GRPC_SCHEDULE_SERVICE_ADDRESS:static://localhost:9092}
       negotiation-type: plaintext
