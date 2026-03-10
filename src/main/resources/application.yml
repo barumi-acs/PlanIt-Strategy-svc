@@ -8,6 +8,9 @@ server:
 spring:
   application:
     name: planit-strategy-service
+
+  config:
+    import: "optional:file:.env[.properties]"
   
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mariadb://localhost:3306/planit_strategy_db}
@@ -16,13 +19,14 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:root}
   
   jpa:
-    database-platform: org.hibernate.dialect.MariaDBDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     show-sql: true
+    defer-datasource-initialization: true
     properties:
       hibernate:
         format_sql: true
+        jdbc.time_zone: Asia/Seoul
   
   sql:
     init:
@@ -33,10 +37,10 @@ spring:
 aws:
   region: ${AWS_REGION:ap-northeast-2}
   credentials:
-    access-key: ${AWS_ACCESS_KEY}
-    secret-key: ${AWS_SECRET_KEY}
+    access-key: ${AWS_ACCESS_KEY:}
+    secret-key: ${AWS_SECRET_KEY:}
   bedrock:
-    model-id: ${BEDROCK_MODEL_ID:us.anthropic.claude-sonnet-4-20250514-v1:0}
+    model-id: ${BEDROCK_MODEL_ID:anthropic.claude-sonnet-4-20250514-v1:0}
 
 
 bedrock:
@@ -44,7 +48,7 @@ bedrock:
 
 # GNews API 설정
 gnews:
-  api-key: ${GNEWS_API_KEY:your-gnews-api-key-here}
+  api-key: ${GNEWS_API_KEY:}
   base-url: https://gnews.io/api/v4
 
 # /actuator/health 로 접속하면 서버 생존 여부 반환

@@ -32,21 +32,22 @@ public class BedrockClient implements LlmClient {
     private final ObjectMapper objectMapper;
 
     public BedrockClient(
-            @Value("${aws.bedrock.model-id:anthropic.claude-3-sonnet-20240229-v1:0}") String modelId,
-            @Value("${bedrock.temperature:0.7}") double temperature,
-            @Value("${aws.region:us-east-1}") String region,
-            @Value("${aws.credentials.access-key:}") String accessKey,
-            @Value("${aws.credentials.secret-key:}") String secretKey) {
-        this.modelId = modelId;
+            @Value("${BEDROCK_MODEL_ID:us.anthropic.claude-sonnet-4-20250514-v1:0}") String modelId,
+            @Value("${BEDROCK_TEMPERATURE:0.7}") double temperature,
+            @Value("${AWS_REGION:ap-northeast-2}") String region,
+            @Value("${AWS_ACCESS_KEY:}") String accessKey,
+            @Value("${AWS_SECRET_KEY:}") String secretKey) {
+        this.modelId = modelId.trim();
         this.temperature = temperature;
         this.objectMapper = new ObjectMapper();
         
+        String trimmedRegion = region.trim();
         software.amazon.awssdk.auth.credentials.AwsCredentialsProvider credentialsProvider;
         
-        if (accessKey != null && !accessKey.isBlank() && !accessKey.equals("your-access-key-here")) {
+        if (accessKey != null && !accessKey.isBlank()) {
             log.info("🔑 Bedrock용 수동 설정된 AWS Credentials 사용");
             credentialsProvider = software.amazon.awssdk.auth.credentials.StaticCredentialsProvider.create(
-                software.amazon.awssdk.auth.credentials.AwsBasicCredentials.create(accessKey, secretKey)
+                software.amazon.awssdk.auth.credentials.AwsBasicCredentials.create(accessKey.trim(), secretKey.trim())
             );
         } else {
             log.info("💻 Bedrock용 기본 AWS 자격 증명 시스템(DefaultCredentialsProvider) 사용");
@@ -54,9 +55,10 @@ public class BedrockClient implements LlmClient {
         }
         
         this.client = BedrockRuntimeClient.builder()
-                .region(Region.of(region))
+                .region(Region.of(trimmedRegion))
                 .credentialsProvider(credentialsProvider)
                 .build();
+        log.info("✅ Bedrock Client 초기화 완료 - Region: {}, Model: {}", trimmedRegion, this.modelId);
     }
 
     @Override
@@ -77,9 +79,18 @@ public class BedrockClient implements LlmClient {
             
             return extractTextFromResponse(responseBody);
         } catch (LlmException e) {
+            log.error("❌ LLM 처리 로직 에러: {}", e.getMessage());
             throw e;
+        } catch (software.amazon.awssdk.services.bedrockruntime.model.ValidationException e) {
+            log.error("❌ Bedrock 모델 ID 또는 페이로드 오류 (ValidationException): {}", e.getMessage());
+            throw new LlmException("유효하지 않은 Bedrock 모델 설정: " + e.getMessage(), e);
+        } catch (software.amazon.awssdk.services.bedrockruntime.model.AccessDeniedException e) {
+            log.error("❌ Bedrock 접근 권한 없음 (AccessDeniedException): {}", e.getMessage());
+            throw new LlmException("AWS Bedrock 권한 오류: 해당 모델 사용 권한을 확인하세요.", e);
         } catch (Exception e) {
-            log.error("Bedrock LLM 호출 실패 - Model: {}, Error: {}", modelId, e.getMessage(), e);
+            log.error("❌ Bedrock 호출 중 알 수 없는 에러 발생 - Model: {}, Error Type: {}, Message: {}", 
+                    modelId, e.getClass().getSimpleName(), e.getMessage());
+            e.printStackTrace();
             throw new LlmException("Bedrock LLM 호출 실패: " + e.getMessage(), e);
         }
     }
