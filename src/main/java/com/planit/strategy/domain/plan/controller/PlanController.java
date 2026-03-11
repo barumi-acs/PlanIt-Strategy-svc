@@ -10,6 +10,7 @@ import com.planit.strategy.domain.plan.dto.PlanResponse;
 import com.planit.strategy.domain.plan.service.PlanService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -43,7 +44,7 @@ public class PlanController {
      */
     @PostMapping("/save")
     public ApiResponse<Long> savePlan(
-            @RequestHeader("X-User-Id") String userId,
+            @AuthenticationPrincipal String userId,
             @RequestBody PlanResponse planResponse) {
         log.info("계획 저장 요청 - UserId: {}, Goal: {}", userId, planResponse.getGoal().getTitle());
         Long goalId = planService.savePlan(userId, planResponse);

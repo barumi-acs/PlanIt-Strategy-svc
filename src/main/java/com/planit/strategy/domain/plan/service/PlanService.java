@@ -60,7 +60,7 @@ public class PlanService {
             return response;
         } catch (AgentExecutionException e) {
             log.error("실행 계획 생성 실패", e);
-            throw new CustomException(ErrorCode.C5001);
+            throw new CustomException(ErrorCode.AI5001);
         }
     }
 

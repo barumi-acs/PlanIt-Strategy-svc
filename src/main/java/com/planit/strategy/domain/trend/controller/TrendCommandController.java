@@ -34,10 +34,10 @@ public class TrendCommandController {
             return ApiResponse.success(null);
         } catch (Exception e) {
             log.error("[Trend Generate API] 트렌드 생성 실패", e);
-            throw new CustomException(ErrorCode.C5001);
+            throw new CustomException(ErrorCode.AI5001);
         }
     }
-    
+
     @Operation(summary = "전체 트렌드 생성", description = "모든 카테고리에 대해 글로벌 뉴스를 분석하여 트렌드와 목표를 생성합니다")
     @PostMapping("/trends/generate-all")
     public ApiResponse<TrendGenerationSummary> generateAllTrends() {
@@ -48,7 +48,7 @@ public class TrendCommandController {
             return ApiResponse.success(summary);
         } catch (Exception e) {
             log.error("[Trend Generate API] 전체 트렌드 생성 실패", e);
-            throw new CustomException(ErrorCode.C5001);
+            throw new CustomException(ErrorCode.AI5001);
         }
     }
 }

@@ -1,12 +1,123 @@
-# 🚀 PlanIt Base Template
+# PlanIt-Strategy-svc
 
-본 레포지토리는 PlanIt MSA 프로젝트의 **공통 기반(Base Template)** 입니다.
-모든 마이크로서비스(User, Schedule 등)는 이 템플릿을 복사하여 개발을 시작합니다. 
-아래의 **[팀원 필수 개발 규칙]** 을 반드시 숙지하고 개발해 주시기 바랍니다.
+PlanIt의 AI 계획 생성 및 트렌드 카테고리 관리를 담당하는 마이크로서비스입니다.  
+AWS Bedrock(Claude)을 호출하여 사용자 목표에 맞는 주차별 실행 계획을 생성하고, Schedule-svc에 gRPC로 저장합니다.
 
 ---
 
-## 📚 1. 기술 스택 및 라이브러리 (Tech Stack)
+## 서비스 개요
+
+| 항목 | 내용 |
+|------|------|
+| 역할 | AI 계획 생성 (Bedrock), 계획 저장 (gRPC → Schedule-svc) |
+| HTTP 포트 | **8083** |
+| gRPC 포트 | **9093** |
+| DB | `planit_strategy_db` (MariaDB) |
+| 외부 의존 | MariaDB, AWS Bedrock, GNews API, Schedule-svc gRPC(9092), User-svc gRPC(9091) |
+
+---
+
+## 기술 스택
+
+| 분류 | 기술 |
+|------|------|
+| 언어 / 프레임워크 | Java 17, Spring Boot 3.5 |
+| ORM | Spring Data JPA |
+| DB | MariaDB |
+| AI | AWS Bedrock (Claude 3.5 Sonnet) |
+| gRPC | grpc-spring-boot-starter |
+| 뉴스 API | GNews API |
+
+---
+
+## 주요 기능
+
+- AI 계획 자동 생성: 목표 텍스트 + 기간 입력 → Claude가 주차별 태스크 자동 생성
+- AI 계획 저장: 프론트에서 받은 계획 데이터를 Schedule-svc에 gRPC로 전달
+- 트렌드 카테고리 관리
+- 시작 시 User-svc gRPC 호출하여 카테고리 8개 동기화 (news_keyword는 기존 값 보존)
+
+---
+
+## 실행 전 필요 조건
+
+1. **MariaDB** 실행 중 (`planit_strategy_db` 데이터베이스 생성 필요)
+2. **PlanIt-User-svc** 실행 중 (gRPC 9091)
+3. **PlanIt-Schedule-svc** 실행 중 (gRPC 9092)
+4. AWS Bedrock 접근 권한 (Claude 모델 활성화 필요)
+5. `.env` 파일 설정
+
+---
+
+## 환경 변수 설정
+
+루트에 `.env` 파일 생성:
+
+```env
+# DB
+SPRING_DATASOURCE_URL=jdbc:mariadb://localhost:3306/planit_strategy_db
+SPRING_DATASOURCE_USERNAME=root
+SPRING_DATASOURCE_PASSWORD=root
+
+# JWT
+JWT_SECRET=planit-user-service-secret-key-change-in-production-please
+
+# AWS Bedrock
+AWS_REGION=ap-northeast-2
+AWS_ACCESS_KEY=AKIA...
+AWS_SECRET_KEY=...
+BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20240620-v1:0
+
+# GNews API (트렌드 뉴스)
+GNEWS_API_KEY=your-gnews-api-key
+
+# gRPC
+GRPC_SERVER_PORT=9093
+GRPC_SCHEDULE_SERVICE_ADDRESS=static://localhost:9092
+USER_SERVICE_GRPC_ADDRESS=static://localhost:9091
+
+# CORS
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+```
+
+---
+
+## DB 생성
+
+```sql
+CREATE DATABASE planit_strategy_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+---
+
+## 실행 방법
+
+```bash
+./gradlew clean bootRun
+```
+
+서버 기동 후 확인:
+- `http://localhost:8083/api/v1/strategy/actuator/health`
+
+---
+
+## 주요 API
+
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| POST | `/api/v1/strategy/plans/generate` | AI 계획 생성 (DB 저장 없음, 미리보기) |
+| POST | `/api/v1/strategy/plans/save` | 계획 저장 (Schedule-svc에 gRPC로 전달) |
+
+### 흐름
+
+```
+FE → POST /generate → Bedrock Claude 호출 → PlanResponse 반환
+FE → POST /save     → Schedule-svc gRPC → Goal + WeekGoal + Task 저장 → goalId 반환
+```
+
+---
+
+## 더미 기술 스택 (삭제 예정)
 
 공통으로 세팅된 라이브러리 목록입니다. 임의로 버전을 변경하거나 외부 라이브러리를 추가하기 전 반드시 팀과 논의하세요.
 
