@@ -28,11 +28,16 @@ public class PlanProtoMapper {
      * @return gRPC CreatePlanRequest 객체
      */
     public CreatePlanRequest toCreatePlanRequest(String userId, AiPlanResponse aiResponse) {
-        return CreatePlanRequest.newBuilder()
+        CreatePlanRequest request = CreatePlanRequest.newBuilder()
                 .setUserId(userId)
                 .setCategoryName(aiResponse.getCategoryName())
                 .setGoal(toGoalProto(aiResponse.getGoal()))
                 .build();
+        
+        org.slf4j.LoggerFactory.getLogger(this.getClass())
+                .info("[Mapper] CreatePlanRequest.categoryName = {}", request.getCategoryName());
+        
+        return request;
     }
     
     /**
