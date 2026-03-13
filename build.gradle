@@ -57,6 +57,7 @@ dependencies {
     implementation platform('software.amazon.awssdk:bom:2.25.0')
     implementation 'software.amazon.awssdk:bedrockruntime'
     implementation 'software.amazon.awssdk:auth'
+    implementation 'software.amazon.awssdk:apache-client'
     
     // JSON 처리
     implementation 'com.fasterxml.jackson.core:jackson-databind'

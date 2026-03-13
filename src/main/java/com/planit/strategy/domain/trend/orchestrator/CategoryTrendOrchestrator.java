@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -121,11 +120,35 @@ public class CategoryTrendOrchestrator {
         
         log.info("전체 뉴스 수집 완료 - Total Collected: {}, For LLM: {}, Failed: {}", 
                 totalNewsCount, totalNewsForLLM, failedCategories);
+
+        // 뉴스가 1건도 없는 카테고리는 LLM 입력에서 제외한다.
+        List<Category> categoriesForLlm = categories.stream()
+                .filter(category -> {
+                    List<TrendGenerationInput.NewsArticle> news = categoryNewsMap.get(category);
+                    return news != null && !news.isEmpty();
+                })
+                .toList();
+
+        int skippedNoNewsCategories = categories.size() - categoriesForLlm.size();
+        if (skippedNoNewsCategories > 0) {
+            log.warn("뉴스 없음으로 LLM 처리 제외된 카테고리 수: {}", skippedNoNewsCategories);
+        }
+
+        if (categoriesForLlm.isEmpty()) {
+            log.warn("모든 카테고리 뉴스가 비어 있어 트렌드 생성을 종료합니다.");
+            return TrendGenerationSummary.builder()
+                    .totalCategories(categories.size())
+                    .processedCategories(0)
+                    .totalTrends(0)
+                    .totalGoals(0)
+                    .categorySummaries(new ArrayList<>())
+                    .build();
+        }
         
         // 3. 카테고리를 배치로 나눠서 처리
-        int totalBatches = (int) Math.ceil((double) categories.size() / BATCH_SIZE);
+        int totalBatches = (int) Math.ceil((double) categoriesForLlm.size() / BATCH_SIZE);
         log.info("배치 처리 시작 - Total Categories: {}, Batch Size: {}, Total Batches: {}", 
-                categories.size(), BATCH_SIZE, totalBatches);
+                categoriesForLlm.size(), BATCH_SIZE, totalBatches);
         
         long totalLlmTime = 0;
         int processedCategories = 0;
@@ -133,8 +156,8 @@ public class CategoryTrendOrchestrator {
         
         for (int batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
             int startIdx = batchIndex * BATCH_SIZE;
-            int endIdx = Math.min(startIdx + BATCH_SIZE, categories.size());
-            List<Category> batchCategories = categories.subList(startIdx, endIdx);
+                        int endIdx = Math.min(startIdx + BATCH_SIZE, categoriesForLlm.size());
+                        List<Category> batchCategories = categoriesForLlm.subList(startIdx, endIdx);
             
             log.info("배치 {}/{} 처리 시작 - Categories: {} ({}~{})", 
                     batchIndex + 1, totalBatches, batchCategories.size(), startIdx, endIdx - 1);
@@ -158,6 +181,11 @@ public class CategoryTrendOrchestrator {
                         .news(limitedNews)
                         .build());
             }
+
+                        if (batchCategoryNewsList.isEmpty()) {
+                                log.warn("배치 {}/{}는 유효 뉴스가 없어 건너뜁니다.", batchIndex + 1, totalBatches);
+                                continue;
+                        }
             
             TrendGenerationInput batchInput = TrendGenerationInput.builder()
                     .categories(batchCategoryNewsList)
@@ -219,7 +247,7 @@ public class CategoryTrendOrchestrator {
             }
             
             log.info("배치 {}/{} 처리 완료 - Processed: {}/{}", 
-                    batchIndex + 1, totalBatches, processedCategories, categories.size());
+                    batchIndex + 1, totalBatches, processedCategories, categoriesForLlm.size());
         }
         
         // 전체 통계 계산
@@ -269,6 +297,12 @@ public class CategoryTrendOrchestrator {
         
         log.info("뉴스 수집 완료 - Category: {} (ID: {}), Collected: {}, For LLM: {}", 
                 category.getName(), category.getId(), allNews.size(), limitedNews.size());
+
+        if (limitedNews.isEmpty()) {
+            log.warn("카테고리 '{}' (ID: {}) 뉴스가 비어 있어 LLM 호출을 생략합니다.",
+                    category.getName(), category.getId());
+            return;
+        }
         
         // 2. LLM 입력 생성 (단일 카테고리)
         TrendGenerationInput input = TrendGenerationInput.builder()

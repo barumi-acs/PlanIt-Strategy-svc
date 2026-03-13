@@ -48,7 +48,7 @@ bedrock:
 
 # GNews API 설정
 gnews:
-  api-key: ${GNEWS_API_KEY:}
+  api-key: ${GNEWS_API_KEY:d615b66ab942e55581c25c226af96009}
   base-url: https://gnews.io/api/v4
 
 # /actuator/health 로 접속하면 서버 생존 여부 반환

@@ -12,12 +12,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +37,9 @@ public class BedrockClient implements LlmClient {
     public BedrockClient(
             @Value("${BEDROCK_MODEL_ID:us.anthropic.claude-sonnet-4-20250514-v1:0}") String modelId,
             @Value("${BEDROCK_TEMPERATURE:0.7}") double temperature,
+            @Value("${BEDROCK_SOCKET_TIMEOUT_SECONDS:180}") int socketTimeoutSeconds,
+            @Value("${BEDROCK_CONNECTION_TIMEOUT_SECONDS:10}") int connectionTimeoutSeconds,
+            @Value("${BEDROCK_API_TIMEOUT_SECONDS:180}") int apiTimeoutSeconds,
             @Value("${AWS_REGION:ap-northeast-2}") String region,
             @Value("${AWS_ACCESS_KEY:}") String accessKey,
             @Value("${AWS_SECRET_KEY:}") String secretKey) {
@@ -53,12 +59,22 @@ public class BedrockClient implements LlmClient {
             log.info("💻 Bedrock용 기본 AWS 자격 증명 시스템(DefaultCredentialsProvider) 사용");
             credentialsProvider = DefaultCredentialsProvider.create();
         }
+
+        ClientOverrideConfiguration overrideConfiguration = ClientOverrideConfiguration.builder()
+            .apiCallTimeout(Duration.ofSeconds(apiTimeoutSeconds))
+            .apiCallAttemptTimeout(Duration.ofSeconds(apiTimeoutSeconds))
+            .build();
         
         this.client = BedrockRuntimeClient.builder()
                 .region(Region.of(trimmedRegion))
                 .credentialsProvider(credentialsProvider)
+            .httpClientBuilder(ApacheHttpClient.builder()
+                .socketTimeout(Duration.ofSeconds(socketTimeoutSeconds))
+                .connectionTimeout(Duration.ofSeconds(connectionTimeoutSeconds)))
+            .overrideConfiguration(overrideConfiguration)
                 .build();
-        log.info("✅ Bedrock Client 초기화 완료 - Region: {}, Model: {}", trimmedRegion, this.modelId);
+        log.info("✅ Bedrock Client 초기화 완료 - Region: {}, Model: {}, SocketTimeout: {}s, ApiTimeout: {}s",
+            trimmedRegion, this.modelId, socketTimeoutSeconds, apiTimeoutSeconds);
     }
 
     @Override
