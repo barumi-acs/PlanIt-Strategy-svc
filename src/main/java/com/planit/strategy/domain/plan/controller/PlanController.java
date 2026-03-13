@@ -47,6 +47,8 @@ public class PlanController {
             @AuthenticationPrincipal String userId,
             @RequestBody PlanResponse planResponse) {
         log.info("계획 저장 요청 - UserId: {}, Goal: {}", userId, planResponse.getGoal().getTitle());
+        log.info("[Controller] PlanResponse.categoryName = {}", planResponse.getCategoryName());
+        log.info("[Controller] PlanResponse.goal.title = {}", planResponse.getGoal().getTitle());
         Long goalId = planService.savePlan(userId, planResponse);
         return ApiResponse.success(goalId);
     }

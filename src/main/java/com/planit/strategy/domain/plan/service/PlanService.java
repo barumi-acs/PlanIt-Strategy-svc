@@ -75,6 +75,7 @@ public class PlanService {
     public Long savePlan(String userId, PlanResponse planResponse) {
         try {
             log.info("계획 저장 요청 - UserId: {}, Goal: {}", userId, planResponse.getGoal().getTitle());
+            log.info("[Service] savePlan input categoryName = {}", planResponse.getCategoryName());
             
             // 1. PlanResponse를 AiPlanResponse로 변환
             AiPlanResponse aiPlanResponse = AiPlanResponse.builder()
@@ -82,9 +83,13 @@ public class PlanService {
                     .goal(planResponse.getGoal())
                     .build();
             
+            log.info("[Service] AiPlanResponse reconstructed categoryName = {}", aiPlanResponse.getCategoryName());
+            
             // 2. gRPC proto 객체로 변환
             com.planit.grpc.schedule.CreatePlanRequest grpcRequest = 
                     planProtoMapper.toCreatePlanRequest(userId, aiPlanResponse);
+            
+            log.info("[Service] CreatePlanRequest.categoryName = {}", grpcRequest.getCategoryName());
             
             // 3. Schedule Service에 gRPC 호출
             Long goalId = scheduleGrpcClient.createPlan(grpcRequest);
