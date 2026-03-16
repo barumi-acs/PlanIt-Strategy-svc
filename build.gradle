@@ -98,17 +98,15 @@ sourceSets {
 //     generateProtoTasks { all()*.plugins { grpc {} } }
 // }
 
-// 맥북 실행이 안되서 아키텍쳐 맞는거로 교체
+// OS/아키텍처는 protobuf-gradle-plugin이 자동으로 감지해 맞는 바이너리를 선택한다.
 protobuf {
-    protoc { 
-        // 맥북(Apple Silicon) 전용 컴파일러 지정
-        artifact = "com.google.protobuf:protoc:3.24.0:osx-aarch_64" 
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.24.0"
     }
-    plugins { 
-        grpc { 
-            // 맥북 전용 gRPC 플러그인 지정
-            artifact = "io.grpc:protoc-gen-grpc-java:1.58.0:osx-aarch_64" 
-        } 
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:1.58.0"
+        }
     }
     generateProtoTasks { all()*.plugins { grpc {} } }
 }
