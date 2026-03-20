@@ -14,7 +14,7 @@ server:
 
 spring:
   application:
-    name: planit-strategy-service
+    name: strategy-svc
 
   config:
     import: "optional:file:.env[.properties]"
