@@ -27,4 +27,3 @@ public class ApiResponse<T> {
                 .build();
     }
 }
-THIS_IS_ERROR_FOR_CI_TEST
