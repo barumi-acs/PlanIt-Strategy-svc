@@ -24,6 +24,8 @@ jobs:
         distribution: 'corretto'
 
     - name: 3. Build with Gradle
+      id: build
+      continue-on-error: true
       run: |
         chmod +x gradlew
         ./gradlew clean build -x test
@@ -37,9 +39,12 @@ jobs:
 
     - name: 5. Login to Amazon ECR
       id: login-ecr
+      continue-on-error: true
       uses: aws-actions/amazon-ecr-login@v1
 
     - name: 6. Build and push Docker image
+      id: docker
+      continue-on-error: true
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
@@ -57,6 +62,8 @@ jobs:
 
     # 8. deployment.yaml 파일 내 이미지 태그 수정
     - name: 8. Update Image Tag in YAML
+      id: manifest
+      continue-on-error: true
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: pi-strategy              # ◀── Strategy 서비스용 ECR 레포 명칭 확인!
@@ -71,6 +78,8 @@ jobs:
 
     # 9. 변경사항 커밋 및 푸시
     - name: 9. Push Changes to Manifest Repo
+      id: push
+      continue-on-error: true
       run: |
         cd manifest-repo
         git config --global user.email "action@github.com"
@@ -93,6 +102,23 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Detect Failed Step
+      if: always()
+      run: |
+        if [ "${{ steps.build.outcome }}" = "failure" ]; then
+          echo "FAILED_STAGE=build" >> $GITHUB_ENV
+        elif [ "${{ steps.login-ecr.outcome }}" = "failure" ]; then
+          echo "FAILED_STAGE=ecr-login" >> $GITHUB_ENV
+        elif [ "${{ steps.docker.outcome }}" = "failure" ]; then
+          echo "FAILED_STAGE=docker" >> $GITHUB_ENV
+        elif [ "${{ steps.manifest.outcome }}" = "failure" ]; then
+          echo "FAILED_STAGE=deploy" >> $GITHUB_ENV
+        elif [ "${{ steps.push.outcome }}" = "failure" ]; then
+          echo "FAILED_STAGE=git-push" >> $GITHUB_ENV
+        else
+          echo "FAILED_STAGE=none" >> $GITHUB_ENV
+        fi
+
       # 🔥 실패 알림
     - name: 🔥 Notify CI Failure
       if: always() && failure()
@@ -105,9 +131,9 @@ jobs:
             "workflow": "${{ github.workflow }}",
             "service": "'$SERVICE_NAME'",
             "env": "dev",
-            "stage": "pipeline",
+            "stage": "${{ env.FAILED_STAGE }}",
             "status": "FAILED",
-            "message": "${{ github.event.head_commit.message }}",
+            "message": "ERROR at ${{ env.FAILED_STAGE }}",
             "author": "${{ github.actor }}",
             "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }'
