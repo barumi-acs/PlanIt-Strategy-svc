@@ -26,8 +26,7 @@ jobs:
     - name: 3. Build with Gradle
       run: |
         chmod +x gradlew
-        set -o pipefail
-        ./gradlew clean build -x test 2>&1 | tee build.log
+        ./gradlew clean build -x test
 
     - name: 4. Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
@@ -85,17 +84,7 @@ jobs:
           git commit -m "chore(strategy-svc): update image to ${{ github.sha }}"
           git push origin develop
         fi
-
-      # 🔥 에러 로그 추출 (핵심)
-    - name: Extract Error Log
-      if: failure()
-      run: |
-        echo "ERROR_LOG<<EOF" >> $GITHUB_ENV
-        echo "===== BUILD =====" >> $GITHUB_ENV
-        tail -n 20 build.log >> $GITHUB_ENV || echo "no build log" >> $GITHUB_ENV
-        echo "===== DOCKER =====" >> $GITHUB_ENV
-        tail -n 20 docker.log >> $GITHUB_ENV || echo "no docker log" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+    
 
       # 🔥 실패 알림
     - name: 🔥 Notify CI Failure
@@ -104,17 +93,17 @@ jobs:
         aws sns publish \
           --region ${{ env.AWS_REGION }} \
           --topic-arn ${{ secrets.SNS_TOPIC_ARN }} \
-          --message "{
-            \"type\": \"CI\",
-            \"workflow\": \"${{ github.workflow }}\",
-            \"service\": \"${{ env.SERVICE_NAME }}\",
-            \"env\": \"dev\",
-            \"stage\": \"${{ github.job }}\",
-            \"status\": \"FAILED\",
-            \"message\": \"${{ env.ERROR_LOG }}\",
-            \"author\": \"${{ github.actor }}\",
-            \"url\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
-          }"
+          --message '{
+            "type": "CI",
+            "workflow": "${{ github.workflow }}",
+            "service": "'$SERVICE_NAME'",
+            "env": "dev",
+            "stage": "pipeline",
+            "status": "FAILED",
+            "message": "${{ github.event.head_commit.message }}",
+            "author": "${{ github.actor }}",
+            "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          }'
 
       # 🚀 성공 알림
     - name: 🚀 Notify CI Success
@@ -123,14 +112,14 @@ jobs:
         aws sns publish \
           --region ${{ env.AWS_REGION }} \
           --topic-arn ${{ secrets.SNS_TOPIC_ARN }} \
-          --message "{
-            \"type\": \"CI\",
-            \"workflow\": \"${{ github.workflow }}\",
-            \"service\": \"${{ env.SERVICE_NAME }}\",
-            \"env\": \"dev\",
-            \"stage\": \"${{ github.job }}\",
-            \"status\": \"SUCCESS\",
-            \"message\": \"Deployment successful\",
-            \"author\": \"${{ github.actor }}\",
-            \"url\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
-          }"
+          --message '{
+            "type": "CI",
+            "workflow": "${{ github.workflow }}",
+            "service": "'$SERVICE_NAME'",
+            "env": "dev",
+            "stage": "pipeline",
+            "status": "SUCCESS",
+            "message": "${{ github.event.head_commit.message }}",
+            "author": "${{ github.actor }}",
+            "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          }
