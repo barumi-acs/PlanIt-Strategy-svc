@@ -114,17 +114,18 @@ jobs:
 
       - name: Send Notification
         run: |
-          STATUS="${{ needs.build-and-deploy.result }}"
           STAGE="${{ needs.build-and-deploy.outputs.failed_stage }}"
+          WORKFLOW="${{ github.workflow }}"
+          AUTHOR="${{ github.actor }}"
 
-          if [ "$STATUS" = "success" ]; then
+          if [ "$STAGE" = "none" ]; then
             aws sns publish \
               --region ${{ env.AWS_REGION }} \
               --topic-arn ${{ secrets.SNS_TOPIC_ARN }} \
-              --message "{\"status\":\"SUCCESS\",\"service\":\"${{ env.SERVICE_NAME }}\",\"stage\":\"pipeline\"}"
+              --message "{\"status\":\"SUCCESS\",\"workflow\":\"$WORKFLOW\",\"service\":\"${{ env.SERVICE_NAME }}\",\"stage\":\"pipeline\",\"author\":\"$AUTHOR\"}"
           else
             aws sns publish \
               --region ${{ env.AWS_REGION }} \
               --topic-arn ${{ secrets.SNS_TOPIC_ARN }} \
-              --message "{\"status\":\"ERROR\",\"service\":\"${{ env.SERVICE_NAME }}\",\"stage\":\"$STAGE\",\"message\":\"Failed at $STAGE\"}"
+              --message "{\"status\":\"ERROR\",\"workflow\":\"$WORKFLOW\",\"service\":\"${{ env.SERVICE_NAME }}\",\"stage\":\"$STAGE\",\"author\":\"$AUTHOR\",\"message\":\"Failed at $STAGE\"}"
           fi
