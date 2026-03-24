@@ -8,6 +8,7 @@ env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: pi-strategy
   SERVICE_NAME: planit-strategy-svc
+  ENVIRONMENT: dev
 
 jobs:
   build-and-deploy:
@@ -28,11 +29,13 @@ jobs:
 
       - name: 3. Build with Gradle
         id: build
+        continue-on-error: true
         run: |
           chmod +x gradlew
           ./gradlew clean build -x test
 
       - name: 4. Configure AWS credentials
+        continue-on-error: true
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -41,10 +44,12 @@ jobs:
 
       - name: 5. Login to Amazon ECR
         id: login-ecr
+        continue-on-error: true
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: 6. Build and push Docker image
         id: docker
+        continue-on-error: true
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
@@ -53,6 +58,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: 7. Checkout Manifest Repository
+        continue-on-error: true
         uses: actions/checkout@v3
         with:
           repository: barumi-acs/Planit-manifests
@@ -62,6 +68,7 @@ jobs:
 
       - name: 8. Update Image Tag in YAML
         id: manifest
+        continue-on-error: true
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
@@ -72,6 +79,7 @@ jobs:
 
       - name: 9. Push Changes to Manifest Repo
         id: push
+        continue-on-error: true
         run: |
           cd manifest-repo
           git config --global user.email "action@github.com"
@@ -80,6 +88,7 @@ jobs:
           git commit -m "chore(strategy-svc): update image to ${{ github.sha }}" || echo "No changes"
           git push origin develop
 
+      # 🔥 실패 단계 추적
       - name: Set Failed Stage
         id: set-failed-stage
         if: always()
@@ -117,15 +126,16 @@ jobs:
           STAGE="${{ needs.build-and-deploy.outputs.failed_stage }}"
           WORKFLOW="${{ github.workflow }}"
           AUTHOR="${{ github.actor }}"
+          ENVIRONMENT="${{ env.ENVIRONMENT }}"
 
           if [ "$STAGE" = "none" ]; then
             aws sns publish \
               --region ${{ env.AWS_REGION }} \
               --topic-arn ${{ secrets.SNS_TOPIC_ARN }} \
-              --message "{\"status\":\"SUCCESS\",\"workflow\":\"$WORKFLOW\",\"service\":\"${{ env.SERVICE_NAME }}\",\"stage\":\"pipeline\",\"author\":\"$AUTHOR\"}"
+              --message "{\"status\":\"SUCCESS\",\"workflow\":\"$WORKFLOW\",\"service\":\"${{ env.SERVICE_NAME }}\",\"stage\":\"pipeline\",\"env\":\"$ENVIRONMENT\",\"author\":\"$AUTHOR\"}"
           else
             aws sns publish \
               --region ${{ env.AWS_REGION }} \
               --topic-arn ${{ secrets.SNS_TOPIC_ARN }} \
-              --message "{\"status\":\"ERROR\",\"workflow\":\"$WORKFLOW\",\"service\":\"${{ env.SERVICE_NAME }}\",\"stage\":\"$STAGE\",\"author\":\"$AUTHOR\",\"message\":\"Failed at $STAGE\"}"
+              --message "{\"status\":\"ERROR\",\"workflow\":\"$WORKFLOW\",\"service\":\"${{ env.SERVICE_NAME }}\",\"stage\":\"$STAGE\",\"env\":\"$ENVIRONMENT\",\"author\":\"$AUTHOR\",\"message\":\"Failed at $STAGE\"}"
           fi
