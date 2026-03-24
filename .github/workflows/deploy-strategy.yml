@@ -116,24 +116,15 @@ jobs:
         run: |
           STATUS="${{ needs.build-and-deploy.result }}"
           STAGE="${{ needs.build-and-deploy.outputs.failed_stage }}"
-          
+
           if [ "$STATUS" = "success" ]; then
-            aws sns publish --region ${{ env.AWS_REGION }} --topic-arn ${{ secrets.SNS_TOPIC_ARN }} --message "$(cat <<EOF
-  {
-    "status": "SUCCESS",
-    "service": "${{ env.SERVICE_NAME }}",
-    "stage": "pipeline"
-  }
-  EOF
-  )"
-  else
-  aws sns publish --region ${{ env.AWS_REGION }} --topic-arn ${{ secrets.SNS_TOPIC_ARN }} --message "$(cat <<EOF
-  {
-    "status": "ERROR",
-    "service": "${{ env.SERVICE_NAME }}",
-    "stage": "$STAGE",
-    "message": "Failed at $STAGE"
-  }
-  EOF
-  )"
-  fi
+            aws sns publish \
+              --region ${{ env.AWS_REGION }} \
+              --topic-arn ${{ secrets.SNS_TOPIC_ARN }} \
+              --message "{\"status\":\"SUCCESS\",\"service\":\"${{ env.SERVICE_NAME }}\",\"stage\":\"pipeline\"}"
+          else
+            aws sns publish \
+              --region ${{ env.AWS_REGION }} \
+              --topic-arn ${{ secrets.SNS_TOPIC_ARN }} \
+              --message "{\"status\":\"ERROR\",\"service\":\"${{ env.SERVICE_NAME }}\",\"stage\":\"$STAGE\",\"message\":\"Failed at $STAGE\"}"
+          fi
